@@ -28,6 +28,10 @@ class PolyTable(){
             var toBeUpdated=cmd.get(1)
             update(toBeUpdated,cmd.sliceArray(1..cmd.size-1))
         }
+
+        if(typeofOperation=="ADD"){
+            add(cmd.get(1),cmd.get(2),cmd.get(3))
+        }
     }
 
     fun insert(polyArray: Array<String>){
@@ -57,9 +61,9 @@ class PolyTable(){
 
     fun delete(name: String){
         for (elem in polynomialList){
-            if(elem.name==name){
+            if(elem.name==name) {
                 polynomialList.remove(elem)
-                println("POLYNOMIAL "+ name + " SUCCESSFULLY DELETED")
+                println("POLYNOMIAL " + name + " SUCCESSFULLY DELETED")
                 return
             }
         }
@@ -78,20 +82,85 @@ class PolyTable(){
 
 
     }
-    fun search(name: String){
+    fun search(name: String):Int{
+        var ctr = 0
         for (elem in polynomialList){
             if(elem.name==name){
                 printPolynomial(elem)
-                return
+                return ctr
             }
+            ctr+=1
         }
         println("POLYNOMIAL "+ name + " DOES NOT EXIST")
+        return -1
+
     }
     fun quit(){
         System.exit(-1)
     }
 
+    fun add(name: String, p1:String,p2:String){
+        var listofPolyTerm=mutableListOf<PolyTerm>()
+        var p1idx = search(p1)
+        var p2idx = search(p2)
+        if(p1idx==-1 || p2idx == -1){
+            println("INVALID OPERAND POLYNOMIALS")
+            return
+        }
+        var poly1 = polynomialList.get(p1idx)
+        var poly2 = polynomialList.get(p2idx)
+        for (elem in poly1.list){
+            listofPolyTerm+=elem
+        }
+        for(elem in poly2.list){
+            listofPolyTerm+=elem
+        }
+        var reducedList =reduction(listofPolyTerm)
+        var finalPolynomial = Polynomial(name,reducedList)
+        if(search(name)==-1){
+            polynomialList+=finalPolynomial
+        }
+        else{
+            delete(name)
+            polynomialList+=finalPolynomial
+        }
+        printPolynomial(finalPolynomial)
+
+    }
+
     //helper functions to debug
+
+    private fun reduction(polyList: MutableList<PolyTerm>):MutableList<PolyTerm>{
+        var reducedlist = mutableListOf<PolyTerm>()
+        var i = 0
+        while (i<polyList.size){
+            var poly1 = polyList[i]
+            var j = i+1
+            var flag = true
+            while(j<polyList.size){
+                var poly2 = polyList[j]
+                var c1 = poly1.coeff
+                var c2 = poly2.coeff
+                poly1.coeff = 1
+                poly2.coeff = 1
+                if(poly1==poly2){
+                    var newterm = PolyTerm(c1+c2,poly1.xpow,poly1.ypow,poly2.zpow)
+                    reducedlist+=newterm
+                    flag = false
+                    polyList.removeAt(j)
+                }
+                poly1.coeff = c1
+                poly2.coeff = c2
+                j+=1
+            }
+            if(flag==true){
+                reducedlist+=poly1
+            }
+            i+=1
+        }
+        return reducedlist;
+    }
+
     private fun printArrStrings(arr:Array<String>){
         for (elem in arr){
             println(elem)
@@ -103,14 +172,21 @@ class PolyTable(){
         for(index in 0..polynomial.list.size-1){
             var elem = polynomial.list.get(index)
             if(index !=0){
-                var temp = elem.coeff.toInt()
+                var temp = elem.coeff
                 if(temp<0){
                     print(" - ")
                 }
                 else{
                     print(" + ")
 
-                }            }
+                }
+            }
+            else{
+                var temp = elem.coeff
+                if(temp<0){
+                    print("-")
+                }
+            }
             printPolyTerm(elem)
         }
         println()
@@ -123,7 +199,7 @@ class PolyTable(){
         var zpow =""
         var ans = ""
         if(polyTerm.coeff != 1){
-            coeff+=abs(polyTerm.coeff.toInt()).toString()
+            coeff+=abs(polyTerm.coeff).toString()
             ans+=coeff
         }
         if(polyTerm.xpow != 0){
@@ -147,11 +223,6 @@ class PolyTable(){
         print(ans)
     }
 
-    private fun printPolynomialList(){
-        for (elem in polynomialList){
-            printPolynomial(elem)
-        }
-    }
 
     private fun printArrInt(arr:Array<Int>){
         for (elem in arr){
