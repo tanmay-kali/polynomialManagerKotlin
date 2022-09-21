@@ -7,6 +7,7 @@ import kotlin.math.abs
 class PolyTable(){
     var polynomialList = mutableListOf<Polynomial>()
 
+    //check what opration is requested by user
     fun evaluate(cmd:Array<String>){
         val typeofOperation = cmd.get(0)
         if (typeofOperation=="QUIT"){
@@ -18,19 +19,43 @@ class PolyTable(){
         }
         if(typeofOperation=="DELETE"){
             var toBeDeleted=cmd.get(1)
-            delete(toBeDeleted)
+            var retval = delete(toBeDeleted)
+            if(retval==-1){
+                println("POLYNOMIAL "+ toBeDeleted + " DOES NOT EXIST")
+            }
+            else{
+                println("POLYNOMIAL " + toBeDeleted + " SUCCESSFULLY DELETED")
+            }
         }
         if(typeofOperation=="SEARCH"){
             var toBeSearched=cmd.get(1)
-            search(toBeSearched)
+            var retval = search(toBeSearched)
+            if (retval==-1){
+                println("POLYNOMIAL "+ toBeSearched + " DOES NOT EXIST")
+            }
+            else{
+                printPolynomial(polynomialList[retval])
+            }
+
+
+
         }
         if(typeofOperation=="UPDATE"){
             var toBeUpdated=cmd.get(1)
-            update(toBeUpdated,cmd.sliceArray(1..cmd.size-1))
+            var retval = update(toBeUpdated,cmd.sliceArray(1..cmd.size-1))
+            if(retval==-1){
+                println("POLYNOMIAL "+ toBeUpdated + " DOES NOT EXIST")
+            }
         }
 
         if(typeofOperation=="ADD"){
             add(cmd.get(1),cmd.get(2),cmd.get(3))
+        }
+        if(typeofOperation=="SUB"){
+            sub(cmd.get(1),cmd.get(2),cmd.get(3))
+        }
+        if(typeofOperation=="MULT"){
+            multi(cmd.get(1),cmd.get(2),cmd.get(3))
         }
     }
 
@@ -59,39 +84,35 @@ class PolyTable(){
         polynomialList+=currPolynomial
     }
 
-    fun delete(name: String){
+    fun delete(name: String):Int{
         for (elem in polynomialList){
             if(elem.name==name) {
                 polynomialList.remove(elem)
-                println("POLYNOMIAL " + name + " SUCCESSFULLY DELETED")
-                return
+                return 1
             }
         }
-        println("POLYNOMIAL "+ name + " DOES NOT EXIST")
+        return -1
+
     }
 
-    fun update(name: String,polyArray: Array<String>){
+    fun update(name: String,polyArray: Array<String>):Int{
         for (elem in polynomialList){
             if(elem.name==name){
                 delete(name)
                 insert(polyArray)
-                return
+                return 1
             }
         }
-        println("POLYNOMIAL "+ name + " DOES NOT EXIST")
-
-
+        return -1
     }
     fun search(name: String):Int{
         var ctr = 0
         for (elem in polynomialList){
             if(elem.name==name){
-                printPolynomial(elem)
                 return ctr
             }
             ctr+=1
         }
-        println("POLYNOMIAL "+ name + " DOES NOT EXIST")
         return -1
 
     }
@@ -128,6 +149,63 @@ class PolyTable(){
 
     }
 
+    fun sub(name: String, p1:String,p2:String){
+        var listofPolyTerm=mutableListOf<PolyTerm>()
+        var p1idx = search(p1)
+        var p2idx = search(p2)
+        if(p1idx==-1 || p2idx == -1){
+            println("INVALID OPERAND POLYNOMIALS")
+            return
+        }
+        var poly1 = polynomialList.get(p1idx)
+        var poly2 = polynomialList.get(p2idx)
+        for (elem in poly1.list){
+            listofPolyTerm+=elem
+        }
+        for(elem in poly2.list){
+            var temp = PolyTerm(-1*elem.coeff,elem.xpow,elem.ypow,elem.zpow)
+            listofPolyTerm+=temp
+        }
+        var reducedList =reduction(listofPolyTerm)
+        var finalPolynomial = Polynomial(name,reducedList)
+        if(search(name)==-1){
+            polynomialList+=finalPolynomial
+        }
+        else{
+            delete(name)
+            polynomialList+=finalPolynomial
+        }
+        printPolynomial(finalPolynomial)
+
+    }
+
+    private fun multi(name: String, p1:String,p2:String){
+        var listofPolyTerm=mutableListOf<PolyTerm>()
+        var p1idx = search(p1)
+        var p2idx = search(p2)
+        if(p1idx==-1 || p2idx == -1){
+            println("INVALID OPERAND POLYNOMIALS")
+            return
+        }
+        var poly1 = polynomialList.get(p1idx)
+        var poly2 = polynomialList.get(p2idx)
+        for (elem in poly1.list){
+            for(secElem in poly2.list){
+                var temp = PolyTerm(elem.coeff*secElem.coeff,elem.xpow+secElem.xpow,elem.ypow+secElem.ypow,elem.zpow+secElem.zpow)
+                listofPolyTerm+=temp
+            }
+        }
+        var reducedList =reduction(listofPolyTerm)
+        var finalPolynomial = Polynomial(name,reducedList)
+        if(search(name)==-1){
+            polynomialList+=finalPolynomial
+        }
+        else{
+            delete(name)
+            polynomialList+=finalPolynomial
+        }
+        printPolynomial(finalPolynomial)
+    }
     //helper functions to debug
 
     private fun reduction(polyList: MutableList<PolyTerm>):MutableList<PolyTerm>{
@@ -145,7 +223,9 @@ class PolyTable(){
                 poly2.coeff = 1
                 if(poly1==poly2){
                     var newterm = PolyTerm(c1+c2,poly1.xpow,poly1.ypow,poly2.zpow)
-                    reducedlist+=newterm
+                    if (newterm.coeff !=0){
+                        reducedlist+=newterm
+                    }
                     flag = false
                     polyList.removeAt(j)
                 }
@@ -169,6 +249,10 @@ class PolyTable(){
 
     private fun printPolynomial(polynomial: Polynomial){
         print(polynomial.name+ " = ")
+        if (polynomial.list.size==0){
+            println("0")
+            return
+        }
         for(index in 0..polynomial.list.size-1){
             var elem = polynomial.list.get(index)
             if(index !=0){
@@ -184,7 +268,7 @@ class PolyTable(){
             else{
                 var temp = elem.coeff
                 if(temp<0){
-                    print("-")
+                    print("- ")
                 }
             }
             printPolyTerm(elem)
@@ -198,9 +282,16 @@ class PolyTable(){
         var ypow = ""
         var zpow =""
         var ans = ""
-        if(polyTerm.coeff != 1){
+        if(polyTerm.coeff != 1 && polyTerm.coeff != -1){
             coeff+=abs(polyTerm.coeff).toString()
             ans+=coeff
+        }
+        else{
+            // handling when polyterm is 1,0,0,0
+            if(polyTerm.xpow==0 && polyTerm.ypow==0 && polyTerm.zpow==0){
+                coeff+=abs(polyTerm.coeff).toString()
+                ans+=coeff
+            }
         }
         if(polyTerm.xpow != 0){
             if(polyTerm.xpow !=1){
@@ -222,6 +313,7 @@ class PolyTable(){
         }
         print(ans)
     }
+
 
 
     private fun printArrInt(arr:Array<Int>){
